@@ -132,12 +132,15 @@ This tool shows the results of research conducted in the Computational Biology B
 
 If you find this repo helpful, please cite TrialGPT by:
 ```bibtex
-@article{jin2023matching,
+@article{jin2024matching,
   title={Matching patients to clinical trials with large language models},
   author={Jin, Qiao and Wang, Zifeng and Floudas, Charalampos S and Chen, Fangyuan and Gong, Changlin and Bracken-Clarke, Dara and Xue, Elisabetta and Yang, Yifan and Sun, Jimeng and Lu, Zhiyong},
-  journal={ArXiv},
-  year={2023},
-  publisher={ArXiv}
+  journal={Nature Communications},
+  volume={15},
+  number={1},
+  pages={9074},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
 
