@@ -89,7 +89,7 @@ def convert_pred_to_prompt(
 	user_prompt += patient + "\n\n"
 	user_prompt += "Here is the clinical trial description:\n"
 	user_prompt += trial + "\n\n"
-	user_prompt += "Here are the criterion-levle eligibility prediction:\n"
+	user_prompt += "Here are the criterion-level eligibility prediction:\n"
 	user_prompt += pred + "\n\n"
 	user_prompt += "Plain JSON output:"
 
