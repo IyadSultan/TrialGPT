@@ -7,7 +7,7 @@ Conduct the first stage retrieval by the hybrid retriever
 from beir.datasets.data_loader import GenericDataLoader
 import faiss
 import json
-from nltk import word_tokenize
+from utils.nltk_utils import word_tokenize
 import numpy as np
 import os
 from rank_bm25 import BM25Okapi
@@ -106,6 +106,95 @@ def get_medcpt_corpus_index(corpus):
 	return index, corpus_nctids
 	
 
+def hybrid_fusion_retrieval_web(keywords, trial_database, k=20):
+	"""Simplified version of hybrid fusion retrieval for web interface with cancer prioritization"""
+	try:
+		# Extract conditions from keywords response
+		if isinstance(keywords, dict) and 'conditions' in keywords:
+			conditions = keywords['conditions']
+		else:
+			conditions = [keywords]  # Use as single condition if not in expected format
+		
+		matching_trials = []
+		
+		# Define cancer-related keywords for boosting
+		cancer_keywords = {
+			'cancer', 'tumor', 'tumour', 'neoplasm', 'carcinoma', 'sarcoma', 
+			'lymphoma', 'leukemia', 'melanoma', 'oncology', 'metastatic',
+			'malignant', 'chemotherapy', 'radiation therapy', 'immunotherapy'
+		}
+		
+		# Score each trial
+		for trial_id, trial in trial_database.items():
+			score = 0
+			cancer_trial = False
+			
+			# First check if this is a cancer trial
+			trial_title = trial.get('brief_title', '').lower()
+			trial_conditions = [c.lower() for c in trial.get('condition_list', [])]
+			trial_summary = trial.get('brief_summary', '').lower()
+			
+			# Check if trial is cancer-related
+			for cancer_term in cancer_keywords:
+				if (cancer_term in trial_title or 
+					any(cancer_term in cond for cond in trial_conditions) or 
+					cancer_term in trial_summary):
+					cancer_trial = True
+					break
+			
+			# Score each condition against the trial
+			for condition in conditions:
+				condition = condition.lower()
+				
+				# Extra points for cancer-related conditions
+				condition_cancer_related = any(term in condition for term in cancer_keywords)
+				
+				# Title matching (higher weight for cancer trials)
+				if condition in trial_title:
+					score += 10 if cancer_trial else 5
+					if condition_cancer_related:
+						score += 5
+				
+				# Condition list matching
+				for trial_condition in trial_conditions:
+					if condition in trial_condition:
+						score += 6 if cancer_trial else 3
+						if condition_cancer_related:
+							score += 3
+				
+				# Summary matching
+				if condition in trial_summary:
+					score += 4 if cancer_trial else 2
+					if condition_cancer_related:
+						score += 2
+			
+			# Phase bonus (prioritize later phase trials)
+			phase = trial.get('phase', '').lower()
+			if 'phase 3' in phase or 'phase iii' in phase:
+				score += 3
+			elif 'phase 2' in phase or 'phase ii' in phase:
+				score += 2
+			
+			# Recruitment status bonus
+			if trial.get('status', '').lower() == 'recruiting':
+				score += 2
+			
+			if score > 0:
+				matching_trials.append({
+					'id': trial_id,
+					'score': score,
+					'is_cancer_trial': cancer_trial,
+					**trial
+				})
+		
+		# Sort by score and return top k
+		matching_trials.sort(key=lambda x: (x['is_cancer_trial'], x['score']), reverse=True)
+		return matching_trials[:k]
+		
+	except Exception as e:
+		print(f"Error in hybrid fusion retrieval: {e}")
+		return []
+
 if __name__ == "__main__":
 	# different corpora, "trec_2021", "trec_2022", "sigir"
 	corpus = sys.argv[1]
@@ -163,6 +252,12 @@ if __name__ == "__main__":
 				conditions = id2queries[qid][q_type]["conditions"]
 			elif "Clinician" in q_type:
 				conditions = id2queries[qid].get(q_type, [])
+
+			# Print keywords to console
+			print(f"\n--- Keywords for query {qid} ---")
+			for i, condition in enumerate(conditions):
+				print(f"{i+1}. {condition}")
+			print("----------------------------\n")
 
 			if len(conditions) == 0:
 				nctid2score = {}

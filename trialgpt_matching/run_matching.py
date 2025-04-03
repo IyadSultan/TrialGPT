@@ -5,7 +5,7 @@ Running the TrialGPT matching for three cohorts (sigir, TREC 2021, TREC 2022).
 """
 
 import json
-from nltk.tokenize import sent_tokenize
+from utils.nltk_utils import sent_tokenize
 import os
 import sys
 

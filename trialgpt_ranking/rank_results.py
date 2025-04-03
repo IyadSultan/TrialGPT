@@ -65,17 +65,36 @@ def get_matching_score(matching):
 	return score 
 
 
-def get_agg_score(assessment):
+def get_agg_score(assessment, trial_info):
 	try:
 		rel_score = float(assessment["relevance_score_R"])
 		eli_score = float(assessment["eligibility_score_E"])
+		
+		# Cancer trial boost
+		cancer_keywords = {'cancer', 'tumor', 'neoplasm', 'carcinoma', 'oncology', 
+						 'lymphoma', 'leukemia', 'melanoma', 'sarcoma'}
+		is_cancer_trial = any(word in trial_info['brief_title'].lower() or 
+							any(word in cond.lower() for cond in trial_info['diseases_list'])
+							for word in cancer_keywords)
+		
+		# Apply cancer boost
+		if is_cancer_trial:
+			rel_score *= 1.2  # 20% boost for cancer trials
+			
+		# Phase boost for cancer trials
+		if is_cancer_trial and 'phase' in trial_info:
+			phase = trial_info['phase'].lower()
+			if 'phase 3' in phase or 'phase iii' in phase:
+				rel_score *= 1.1
+			elif 'phase 2' in phase or 'phase ii' in phase:
+				rel_score *= 1.05
+				
 	except:
 		rel_score = 0
 		eli_score = 0
 	
 	score = (rel_score + eli_score) / 100
-
-	return score 
+	return score
 
 
 if __name__ == "__main__":
@@ -86,6 +105,9 @@ if __name__ == "__main__":
 	# loading the results
 	matching_results = json.load(open(matching_results_path))
 	agg_results = json.load(open(agg_results_path))
+	
+	# Add trial_info loading
+	trial_info = json.load(open("dataset/trial_info.json"))
 	
 	# loop over the patients
 	for patient_id, label2trial2results in matching_results.items():
@@ -101,7 +123,9 @@ if __name__ == "__main__":
 					print(f"Patient {patient_id} Trial {trial_id} not in the aggregation results.")
 					agg_score = 0
 				else:
-					agg_score = get_agg_score(agg_results[patient_id][trial_id])
+					# Pass trial_info to get_agg_score
+					agg_score = get_agg_score(agg_results[patient_id][trial_id], 
+											trial_info.get(trial_id, {}))
 
 				trial_score = matching_score + agg_score
 				

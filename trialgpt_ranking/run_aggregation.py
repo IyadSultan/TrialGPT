@@ -6,7 +6,7 @@ Using GPT to aggregate the scores by itself.
 
 from beir.datasets.data_loader import GenericDataLoader
 import json
-from nltk.tokenize import sent_tokenize
+from utils.nltk_utils import sent_tokenize
 import os
 import sys
 import time

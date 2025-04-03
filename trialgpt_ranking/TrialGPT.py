@@ -5,16 +5,15 @@ TrialGPT-Ranking main functions.
 """
 
 import json
-from nltk.tokenize import sent_tokenize
 import time
 import os
-
 from openai import AzureOpenAI
+from utils.nltk_utils import sent_tokenize
 
 client = AzureOpenAI(
-	api_version="2023-09-01-preview",
-	azure_endpoint=os.getenv("OPENAI_ENDPOINT"),
-	api_key=os.getenv("OPENAI_API_KEY"),
+	api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+	azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+	api_key=os.getenv("AZURE_OPENAI_API_KEY"),
 )
 
 def convert_criteria_pred_to_string(
@@ -77,13 +76,26 @@ def convert_pred_to_prompt(
 	# then get the prediction strings
 	pred = convert_criteria_pred_to_string(pred, trial_info)
 
-	# construct the prompt
-	prompt = "You are a helpful assistant for clinical trial recruitment. You will be given a patient note, a clinical trial, and the patient eligibility predictions for each criterion.\n"
-	prompt += "Your task is to output two scores, a relevance score (R) and an eligibility score (E), between the patient and the clinical trial.\n"
-	prompt += "First explain the consideration for determining patient-trial relevance. Predict the relevance score R (0~100), which represents the overall relevance between the patient and the clinical trial. R=0 denotes the patient is totally irrelevant to the clinical trial, and R=100 denotes the patient is exactly relevant to the clinical trial.\n"
-	prompt += "Then explain the consideration for determining patient-trial eligibility. Predict the eligibility score E (-R~R), which represents the patient's eligibility to the clinical trial. Note that -R <= E <= R (the absolute value of eligibility cannot be higher than the relevance), where E=-R denotes that the patient is ineligible (not included by any inclusion criteria, or excluded by all exclusion criteria), E=R denotes that the patient is eligible (included by all inclusion criteria, and not excluded by any exclusion criteria), E=0 denotes the patient is neutral (i.e., no relevant information for all inclusion and exclusion criteria).\n"
-	prompt += 'Please output a JSON dict formatted as Dict{"relevance_explanation": Str, "relevance_score_R": Float, "eligibility_explanation": Str, "eligibility_score_E": Float}.'
+	# construct the prompt with cancer prioritization
+	prompt = """You are a helpful assistant for clinical trial recruitment. You will be given a patient note, a clinical trial, and the patient eligibility predictions for each criterion.
 
+Your task is to output two scores, a relevance score (R) and an eligibility score (E), between the patient and the clinical trial.
+
+IMPORTANT: For cancer-related trials and patients:
+- Give higher relevance scores (R) for matching cancer types and stages
+- Consider molecular markers and previous cancer treatments
+- Prioritize cancer-specific inclusion/exclusion criteria
+- Give additional weight to cancer-specific endpoints
+
+First explain the consideration for determining patient-trial relevance. Predict the relevance score R (0~100), with cancer matches receiving priority scoring:
+- R=100: Perfect match for cancer type, stage, and molecular markers
+- R=80-99: Matching cancer type with partial stage/marker match
+- R=60-79: Related cancer type or relevant oncology trial
+- R=0-59: Non-cancer or unrelated conditions
+
+Then explain the consideration for determining patient-trial eligibility. Predict the eligibility score E (-R~R), which represents the patient's eligibility to the clinical trial. Note that -R <= E <= R.
+
+Please output a JSON dict formatted as Dict{"relevance_explanation": Str, "relevance_score_R": Float, "eligibility_explanation": Str, "eligibility_score_E": Float}."""
 
 	user_prompt = "Here is the patient note:\n"
 	user_prompt += patient + "\n\n"
