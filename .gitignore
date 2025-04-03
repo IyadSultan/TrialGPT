@@ -5,3 +5,4 @@ trial_info.json
 dataset/
 results/
 trialgpt_retrieval/cache/
+"dataset/trial_info.json" 
