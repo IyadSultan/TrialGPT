@@ -10,7 +10,7 @@ TrialGPT is an end-to-end framework that uses large language models (LLMs) for m
 
 ## System Architecture
 
-![System Architecture Diagram](C:\code\trial_gpt\static\img\mermaid.png)
+![System Architecture Diagram](.\static\img\mermaid.png)
 
 
 

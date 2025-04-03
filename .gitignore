@@ -6,3 +6,6 @@ dataset/
 results/
 trialgpt_retrieval/cache/
 "dataset/trial_info.json" 
+nltk_data/
+dataset/trec_2021/qrels/
+dataset/trec_2022/qrels/
