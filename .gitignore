@@ -9,3 +9,4 @@ trialgpt_retrieval/cache/
 nltk_data/
 dataset/trec_2021/qrels/
 dataset/trec_2022/qrels/
+dataset/trial_info.json
