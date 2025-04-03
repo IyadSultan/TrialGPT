@@ -1,2 +1,4 @@
 .env
 venv/
+ntlk_data/
+trial_info.json
